@@ -277,35 +277,7 @@ class HHCoil:
         fig.suptitle("Voltage, Consumed power, and magnetic fieldstrength in \n the middle of the pair, all as function of current")
         fig.tight_layout()
         plt.show
-        
-    def T_equilibrium(self, A, l1, l2, t1, t2, dwire):
-        """
-        Estimated from pixel counting pictures in paper:
-            l1 ~= 69 mm
-            l2 ~= 28 mm
-        Estimated from memory:
-            t1 = t2 = 3 mm
-        
-        Calculate the equilibrium temperature of the coil for a given current. 
-         Coil cross section is defined as follows:
-        """
-        #          t2
-        #         <->
-        #          ___________________
-        #         |___________________| t1          
-        #      ^  | |oooooooooooooo                 
-        #      |  | |oooooooooooooo                 
-        #      |  | |oooooooooooooo <--- dwire        
-        #   l2 |  | |oooooooooooooo                 
-        #      |  | |oooooooooooooo
-        #      |  | |oooooooooooooo
-        #      v  |_|oooooooooooooo___
-        #         |___________________|
-        #         
-        #         <------------------->
-        #                  l1
-        pass
-        # TODO: Implement this
+
     
     def listmethods(self):
         """Function that lists all non-reserved methods in the class"""
