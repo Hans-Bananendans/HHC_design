@@ -447,6 +447,69 @@ class HHCage:
             if method[0:2] != "__":
                 print(str(method+"()"))
                 
+    def plot_current_performance(self, Arange='nothing'):
+        """
+        Plot the Vneeded, Pneeded, and Bmid as function of a range of values
+         for the current (Arange), and plot these.
+        """
+        # If no current range is given, use a default instead
+        if isinstance(Arange, str):
+            defaultlen = 11
+            Amap = [np.linspace(0,self.coils()[0].supply.Amax,defaultlen),
+                    np.linspace(0,self.coils()[1].supply.Amax,defaultlen),
+                    np.linspace(0,self.coils()[2].supply.Amax,defaultlen)]
+        # Else, apply the given current range to all three coils
+        else:
+            Amap = [np.linspace(0,max(Arange),len(Arange)),
+                    np.linspace(0,max(Arange),len(Arange)),
+                    np.linspace(0,max(Arange),len(Arange))]     
+        
+        
+        # Initialize dataset containers
+        Vrange = [[],[],[]]
+        Prange = [[],[],[]]
+        Brange = [[],[],[]]
+        
+        for i, coil in enumerate(self.coils()):
+            for j in range(len(Amap[i])):
+                Vrange[i].append(coil.Vneeded(Amap[i][j]))
+                Prange[i].append(coil.Pneeded(Amap[i][j]))
+                Brange[i].append(coil.calc_Bmid(Amap[i][j]))
+        
+        fig, axs = plt.subplots(3,1)
+        
+        varinst = [Vrange, Prange, Brange]
+
+        varnames = ["Voltage [V]", "Power [W]", "Field strength [uT]"]
+        # For every dataset in varinst
+        for i in range(len(varinst)):
+            # Plot the dataset for the Xcoil in red, Y in green, Z in blue
+            axs[i].plot(Amap[0],varinst[i][0],'r', label = "Xcoil")
+            axs[i].plot(Amap[1],varinst[i][1],'g', label = "Ycoil")
+            axs[i].plot(Amap[2],varinst[i][2],'b', label = "Zcoil")
+
+            # Find the smallest and largest currents in the whole set Amap, 
+            #   and set it as the plot boundaries
+            axs[i].set_xlim(
+                    min([min(A) for A in Amap]),
+                    max([max(A) for A in Amap]))
+            
+            # Label the axes
+            axs[i].set_xlabel("Current [A]")
+            axs[i].set_ylabel(varnames[i])
+            
+            # Put a grid in
+            axs[i].grid(True)
+            
+            # Put a legend in
+            axs[i].legend(loc="upper left")
+            
+        fig.suptitle("Voltage, Consumed power, and magnetic fieldstrength in \n the middle of the pair, all as function of current")
+        fig.tight_layout()
+        plt.show
+        
+#        return Amap, varinst # DEBUG 
+
 
 class ThermalModel:
     def __init__(self):  

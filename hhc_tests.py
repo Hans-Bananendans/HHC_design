@@ -82,7 +82,6 @@ coilZ = HHCoil(sidelength_coil[2],width_coil,N_windings,Rdl,Rwiring,supplyZ)
 # Define cage object
 cage = HHCage(coilX, coilY, coilZ, vEMF=vEMF)
 
-
 #%% ====== Calculations =======
 
 print("For a supply slew rate of", supplyX.t_transient*1000, "ms:")
@@ -111,11 +110,16 @@ vB_desired = scale_vector(np.array([1,1,1]),750)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
+
 # Case: Cancel the EMF and generate 750 uT exactly opposite to the EMF vector
 print("\n======= CASE: 750 uT opposite to EMF =======")
 vB_desired = scale_vector(-1*vEMF,750)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
+
+
+# Plot the characteristics of the cage
+cage.plot_current_performance()
 
 #%% Timing stuff
 time2 = time.perf_counter()
