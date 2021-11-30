@@ -95,25 +95,25 @@ Ireq_EMF = cage.Ireq_breakdown(np.array([0,0,0]))
 cage.properties_vB_req(np.array([0,0,0]), cancelEMF=True)
 
 
-# Case: Cancel the EMF and generate 750 uT in +Z direction (Z-coil has highest 
+# Case: Cancel the EMF and generate 250 uT in +Z direction (Z-coil has highest 
 #   impedance)
-print("\n============ CASE: 750 uT in +Z ============")
-vB_desired = scale_vector(np.array([0,0,1]),750)
+print("\n============ CASE: 250 uT in +Z ============")
+vB_desired = scale_vector(np.array([0,0,1]),250)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
-# Case: Cancel the EMF and generate 750 uT diagonally (X, Y, Z coils all 
+# Case: Cancel the EMF and generate 250 uT diagonally (X, Y, Z coils all 
 #   generate the same magnetic field strength)
-print("\n======= CASE: 750 uT in XYZ diagonal =======")
-vB_desired = scale_vector(np.array([1,1,1]),750)
+print("\n======= CASE: 250 uT in XYZ diagonal =======")
+vB_desired = scale_vector(np.array([1,1,1]),250)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
-# Case: Cancel the EMF and generate 750 uT exactly opposite to the EMF vector
-print("\n======= CASE: 750 uT opposite to EMF =======")
-vB_desired = scale_vector(-1*vEMF,750)
+# Case: Cancel the EMF and generate 250 uT exactly opposite to the EMF vector
+print("\n======= CASE: 250 uT opposite to EMF =======")
+vB_desired = scale_vector(-1*vEMF,250)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
