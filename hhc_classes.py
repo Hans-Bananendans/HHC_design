@@ -484,9 +484,87 @@ class HHCage:
 
 
 class ThermalModel:
-    def __init__(self):  
-        pass
+    """
+    Estimated from pixel counting pictures in paper:
+        l1 ~= 35mm
+        l2 ~= 28 mm
+    Estimated from memory:
+        t1 = t2 = 3 mm
+    
+    Calculate the equilibrium temperature of the coil for a given current. 
+     Coil cross section is defined as follows:
+    """
+    #          t2
+    #         <->
+    #          ___________________
+    #         |___________________| t1          
+    #      ^  | |oooooooooooooo                 
+    #      |  | |oooooooooooooo                 
+    #      |  | |oooooooooooooo <--- dwire        
+    #   l2 |  | |oooooooooooooo                 
+    #      |  | |oooooooooooooo
+    #      |  | |oooooooooooooo
+    #      v  |_|oooooooooooooo___
+    #         |___________________|
+    #         
+    #         <------------------->
+    #                  l1
+    
+    """ Currently implemented model: """
+    
+    #       t2 = 3mm
+    #         <->
+    #          __________________
+    #         |__________________| t1 = 3mm          
+    #      ^  | |              | |
+    #      |  | |          T1->| |<-T2      T_amb   
+    #      |  | |              | |
+    # l2 = |  | |  q_current   | |---> q_radiation
+    # 22mm |  | |              | |---> q_convection
+    #      |  | |             -|-|-> q_conduction
+    #      v  |_|______________|_|
+    #         |__________________|
+    #         
+    #         <------------------->
+        #               l1 = 28mm      
 
+    """ Fair warning: results as of now (01-12-2021), the methods in this class
+        are NOT validated with reality, and may give poor results.
+    """
+    # TODO: Generalize constructor
+    def __init__(self):  
+        self.N = 83
+        self.k = 237 # [W/mK] k_aluminium
+        self.h = 10 #[W/m2k] Wild guess for free convection (typically 2-25)
+        self.l1 = 28E-3 # Sidelength block
+        self.t1 = 3E-3 # Thickness of Al layer
+        self.t2 = self.t1
+        self.l2 = self.l1-2*self.t1
+        
+        self.A1 = (2*(self.l1-2*self.t2) + 2*self.l2) * 1 # [m2] per meter length
+        self.A2 = (2*self.l1 + 2*self.l2) * 1 # [m2] per meter length
+        
+        self.emiss = 0.18 # Emissivity roughly polished aluminium -> https://www.engineeringtoolbox.com/radiation-heat-emissivity-aluminum-d_433.html
+        self.sigma = 5.67E-8 # [W/m2K4] Stefan-Boltzmann constant
+    
+    def q_current(self, I, R):
+        return I**2 * R * self.N
+    
+    def dT_cond(self, I, R):
+        dT_cond = - self.t1 * (self.q_current(I, R))/(self.k*self.A1)
+        return dT_cond
+    
+    def T2(self, I, R, Tamb=20):
+        dT_cond = self.dT_cond(I, R)
+        poly4 = self.emiss*self.sigma/self.k
+        poly1 = self.h/self.k
+        poly0 = - (self.h/self.k*Tamb+self.emiss*self.sigma/self.k*Tamb - dT_cond*self.A1/self.A2)
+        sols = np.roots([poly4, 0, 0, poly1, poly0])
+        # Return only positive, non-imaginary roots:
+        return np.real([i for i in list(sols) if np.imag(i)==0 and np.real(i)>=0][0])
+    
+    def T1(self, I, R, Tamb=20):
+        return self.T2(I, R, Tamb) - self.dT_cond(I, R)
     
     def listmethods(self):
         """Function that lists all non-reserved methods in the class"""
@@ -494,33 +572,3 @@ class ThermalModel:
         for method in object_methods:
             if method[0:2] != "__":
                 print(str(method+"()"))
-    
-    
-    def T_equilibrium(self, A, l1, l2, t1, t2, dwire):
-        """
-        Estimated from pixel counting pictures in paper:
-            l1 ~= 69 mm
-            l2 ~= 28 mm
-        Estimated from memory:
-            t1 = t2 = 3 mm
-        
-        Calculate the equilibrium temperature of the coil for a given current. 
-         Coil cross section is defined as follows:
-        """
-        #          t2
-        #         <->
-        #          ___________________
-        #         |___________________| t1          
-        #      ^  | |oooooooooooooo                 
-        #      |  | |oooooooooooooo                 
-        #      |  | |oooooooooooooo <--- dwire        
-        #   l2 |  | |oooooooooooooo                 
-        #      |  | |oooooooooooooo
-        #      |  | |oooooooooooooo
-        #      v  |_|oooooooooooooo___
-        #         |___________________|
-        #         
-        #         <------------------->
-        #                  l1
-        pass
-        # TODO: Implement this
