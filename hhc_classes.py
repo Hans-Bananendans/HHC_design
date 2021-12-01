@@ -59,7 +59,7 @@ class HHCoil:
         self.lz = lz            
         self.N = N_windings     
         self.Rdl = Rdl          
-        self.Rconnectors = Rconnectors    
+        self.Rconnectors = Rconnectors
         
         # Crude way of validating that supply is the correct class:
         assert ("PowerSupply" in str(type(supply))), \
@@ -107,8 +107,14 @@ class HHCoil:
         
         return L # [H]
     
-    def Rtot(self):
-        return self.R + self.Rconnectors
+    def Rtot(self, Teq=20):
+        # Use linearized relationship (constant dR/dT) to find extra resistance
+        # caused by elevated temperatures of copper (see [ladino2015])
+        # Assumption: Every conductor (including connectors) are purely copper
+        
+        alpha_copper = 0.00427 # [Ohm/K] see [ladino2015]
+        
+        return (self.R + self.Rconnectors)*(1+alpha_copper*(Teq-20))
     
     def VLt_max(self):
         """
@@ -118,20 +124,20 @@ class HHCoil:
         """
         return -self.L * 0.8*self.supply.Adotmax
     
-    def Vneeded(self, I):
+    def Vneeded(self, I, Teq=20):
         """
         Calculate voltage needed to maintain a certain current through the 
          coils.
         """
-        return I*(self.R + self.Rconnectors)
+        return I*self.Rtot(Teq)
     
-    def Pneeded(self, I):
+    def Pneeded(self, I, Teq=20):
         """
         Calculate power needed to maintain a certain current through the 
          coils. This ignores the power that the coil needs to push against
          the Earth Magnetic Field (EMF)
         """
-        return self.Vneeded(I)*I
+        return self.Vneeded(I, Teq)*I
         
     
     def print_summary(self):
@@ -245,38 +251,39 @@ class HHCoil:
         Ireq = 1/self.N * (4*np.pi)/self.mu0 * Breq/self.compute_Q(coor)
         
         return Ireq # [A]
-    
-    def plot_current_performance(self, Arange='oops'):
-        """
-        Plot the Vneeded, Pneeded, and Bmid as function of a range of values
-         for the current (Arange), and plot these.
-        """
-        if isinstance(Arange, str):
-            np.linspace(0,self.supply.Amax,101)
-        
-        Vrange = []
-        Prange = []
-        Brange = []
-        
-        for i in range(len(Arange)):
-            Vrange.append(self.Vneeded(Arange[i]))
-            Prange.append(self.Pneeded(Arange[i]))
-            Brange.append(self.calc_Bmid(Arange[i]))
-        
-        fig, axs = plt.subplots(3,1)
-        
-        varinst = [Vrange, Prange, Brange]
-        varnames = ["Voltage [V]", "Power [W]","Field strength [uT]"]
-        for i in range(len(varinst)):
-            axs[i].plot(Arange,varinst[i],'r')
-            axs[i].set_xlim(min(Arange),max(Arange))
-            axs[i].set_xlabel("Current [A]")
-            axs[i].set_ylabel(varnames[i])
-            axs[i].grid(True)
-            
-        fig.suptitle("Voltage, Consumed power, and magnetic fieldstrength in \n the middle of the pair, all as function of current")
-        fig.tight_layout()
-        plt.show
+ 
+    """Unused method - Due removal """
+#    def plot_current_performance(self, Arange='nothing', Teq=20):
+#        """
+#        Plot the Vneeded, Pneeded, and Bmid as function of a range of values
+#         for the current (Arange), and plot these.
+#        """
+#        if isinstance(Arange, str):
+#            np.linspace(0,self.supply.Amax,101)
+#        
+#        Vrange = []
+#        Prange = []
+#        Brange = []
+#        
+#        for i in range(len(Arange)):
+#            Vrange.append(self.Vneeded(Arange[i]))
+#            Prange.append(self.Pneeded(Arange[i]))
+#            Brange.append(self.calc_Bmid(Arange[i]))
+#        
+#        fig, axs = plt.subplots(3,1)
+#        
+#        varinst = [Vrange, Prange, Brange]
+#        varnames = ["Voltage [V]", "Power [W]","Field strength [uT]"]
+#        for i in range(len(varinst)):
+#            axs[i].plot(Arange,varinst[i],'r')
+#            axs[i].set_xlim(min(Arange),max(Arange))
+#            axs[i].set_xlabel("Current [A]")
+#            axs[i].set_ylabel(varnames[i])
+#            axs[i].grid(True)
+#            
+#        fig.suptitle("Voltage, Consumed power, and magnetic fieldstrength in \n the middle of the pair, all as function of current")
+#        fig.tight_layout()
+#        plt.show
 
     
     def listmethods(self):
@@ -352,16 +359,17 @@ class HHCage:
             Ireq.append(coil.calc_Ireq(-self.vEMF[i]))
         return np.array(Ireq)
             
-    
+    """Unused method - Due removal """
 #    def vEMF(self, vEMF: np.ndarray):
 #        assert (len(vEMF)==3), "Error: Argument 'vEMF' must be a numpy.ndarray of length 3."
 #        assert (isinstance(vEMF, np.ndarray)), "Error: Argument 'vEMF' must be a numpy.ndarray."
 #        self.vEMF = vEMF
     
-    def properties_vB_req(self, vB: np.ndarray, cancelEMF=False):
+    def properties_vB_req(self, vB: np.ndarray, cancelEMF=False, Teq=20):
         """
         Compute Vneeded, Pneeded, and Bmid as function of the current needed
          for a desired magnetic field vector.
+        Use Teq to set the expected equilibrium temperature of the coils (default: 20 C)
         """
         
         assert (len(vB)==3), "Error: Argument 'vB' must be a numpy.ndarray of length 3."
@@ -377,8 +385,8 @@ class HHCage:
         Bresult = []
         
         for i, coil in enumerate(self.coils()):
-            Vreq.append(coil.Vneeded(Ireq[i]))
-            Preq.append(coil.Pneeded(Ireq[i]))
+            Vreq.append(coil.Vneeded(Ireq[i], Teq=Teq))
+            Preq.append(coil.Pneeded(Ireq[i], Teq=Teq))
             Bresult.append(coil.calc_Bmid(Ireq[i]))
         
         print("Ireq =", np.array(Ireq).round(3), "[A]")
@@ -389,28 +397,29 @@ class HHCage:
         print("vEMF =", self.vEMF.round(3), "[uT]")
         print("Resulting field: ", (np.array(Bresult)+self.vEMF).round(3), "[uT]")
 
-    def properties_cancelEMF(self):
-        """
-        Compute Vneeded, Pneeded, and Bmid as function of the current needed
-         to cancel the local Earth Magnetic Field at the cage.
-        """
-
-        Ireq = self.Ireq_cancelEMF()
-        Vreq = []
-        Preq = []
-        Bresult = []
-        
-        for i, coil in enumerate(self.coils()):
-            Vreq.append(coil.Vneeded(Ireq[i]))
-            Preq.append(coil.Pneeded(Ireq[i]))
-            Bresult.append(coil.calc_Bmid(Ireq[i]))
-        
-        print("Ireq =", np.array(Ireq).round(3), "[A]")
-        print("Vreq =", np.array(Vreq).round(3), "[V]")
-        print("Preq =", np.array(Preq).round(3), "[W]") 
-        print("Bresult =", np.array(Bresult).round(3), "[uT]")
-        print("vEMF =", self.vEMF.round(3), "[uT]")
-        print("Resulting field: ", (np.array(Bresult)+self.vEMF).round(3), "[uT]")
+    """Unused method - Due removal """
+#    def properties_cancelEMF(self, Teq):
+#        """
+#        Compute Vneeded, Pneeded, and Bmid as function of the current needed
+#         to cancel the local Earth Magnetic Field at the cage.
+#        """
+#
+#        Ireq = self.Ireq_cancelEMF()
+#        Vreq = []
+#        Preq = []
+#        Bresult = []
+#        
+#        for i, coil in enumerate(self.coils()):
+#            Vreq.append(coil.Vneeded(Ireq[i]), Teq=Teq)
+#            Preq.append(coil.Pneeded(Ireq[i]), Teq=Teq)
+#            Bresult.append(coil.calc_Bmid(Ireq[i]))
+#        
+#        print("Ireq =", np.array(Ireq).round(3), "[A]")
+#        print("Vreq =", np.array(Vreq).round(3), "[V]")
+#        print("Preq =", np.array(Preq).round(3), "[W]") 
+#        print("Bresult =", np.array(Bresult).round(3), "[uT]")
+#        print("vEMF =", self.vEMF.round(3), "[uT]")
+#        print("Resulting field: ", (np.array(Bresult)+self.vEMF).round(3), "[uT]")
         
     def listmethods(self):
         """Function that lists all non-reserved methods in the class"""
@@ -419,14 +428,15 @@ class HHCage:
             if method[0:2] != "__":
                 print(str(method+"()"))
                 
-    def plot_current_performance(self, Arange='nothing'):
+    def plot_current_performance(self, Arange='nothing', Teq=20):
         """
         Plot the Vneeded, Pneeded, and Bmid as function of a range of values
-         for the current (Arange), and plot these.
+          for the current (Arange), and plot these.
+        Use Teq to set the expected equilibrium temperature of the coils (default: 20 C)
         """
         # If no current range is given, use a default instead
         if isinstance(Arange, str):
-            defaultlen = 11
+            defaultlen = 101
             Amap = [np.linspace(0,self.coils()[0].supply.Amax,defaultlen),
                     np.linspace(0,self.coils()[1].supply.Amax,defaultlen),
                     np.linspace(0,self.coils()[2].supply.Amax,defaultlen)]
@@ -444,8 +454,8 @@ class HHCage:
         
         for i, coil in enumerate(self.coils()):
             for j in range(len(Amap[i])):
-                Vrange[i].append(coil.Vneeded(Amap[i][j]))
-                Prange[i].append(coil.Pneeded(Amap[i][j]))
+                Vrange[i].append(coil.Vneeded(Amap[i][j], Teq=Teq))
+                Prange[i].append(coil.Pneeded(Amap[i][j], Teq=Teq))
                 Brange[i].append(coil.calc_Bmid(Amap[i][j]))
         
         fig, axs = plt.subplots(3,1)
@@ -480,8 +490,44 @@ class HHCage:
         fig.tight_layout()
         plt.show
         
-#        return Amap, varinst # DEBUG 
-
+    def plot_dRdT(self, Arange='nothing'):
+        """
+        Plot the R-T relationship as function of the equilibrium temperature
+          Teq for each coil.
+        """
+        # If no current range is given, use a default instead (0 C - 120 C)
+        if isinstance(Arange, str):
+            defaultlen = 101
+            Amap = np.linspace(0, 120 ,defaultlen)
+        # Else, apply the given temperature range to all three coils
+        else:
+            Amap = np.linspace(min(Arange),max(Arange),len(Arange))
+        
+        Rrange = [[],[],[]]
+        
+        for i, coil in enumerate(self.coils()):
+            for j in range(len(Amap)):
+                Rrange[i].append(coil.Rtot(Teq=Amap[j]))
+        
+        fig, ax = plt.subplots()
+        
+        ax.plot(Amap, Rrange[0], 'r', label = "Xcoil")
+        ax.plot(Amap, Rrange[1], 'g', label = "Ycoil")
+        ax.plot(Amap, Rrange[2], 'b', label = "Zcoil")
+        
+        ax.set_xlim(min(Amap), max(Amap))
+                    
+        ax.set_title("Total coil resistance as function of temperature")
+        ax.set_xlabel("Conductor temperature [deg C]")
+        ax.set_ylabel("Total resistance [Ohm]")
+        
+        # Put a grid in
+        ax.grid(True)
+        
+        # Put a legend in
+        ax.legend(loc="upper left")
+        
+        plt.show
 
 class ThermalModel:
     """

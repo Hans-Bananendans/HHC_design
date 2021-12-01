@@ -73,7 +73,7 @@ Rwiring = 30*0.00328 + 4*0.020
 N_windings = 83
 sidelength_coil = [1.85, 1.95, 2.05] # [m] X,Y,Z
 width_coil = 0.05 # [m] Coil thickness estimated 
-Rdl = 0.0062 # [Ohm/m] Impedance of coil wire (per meter)
+Rdl = 0.00657 # [Ohm/m] Impedance of coil wire (per meter)
 
 coilX = HHCoil(sidelength_coil[0],width_coil,N_windings,Rdl,Rwiring,supplyX)
 coilY = HHCoil(sidelength_coil[1],width_coil,N_windings,Rdl,Rwiring,supplyY)
@@ -88,38 +88,69 @@ print("For a supply slew rate of", supplyX.t_transient*1000, "ms:")
 print("VLt =", [round(coil.VLt_max(),3) for coil in cage.coils()], " [V]")
 
 
-# Case: Cancel the EMF and create a net zero magnetic field vector
-print("\n============ CASE: Cancel vEMF =============")
+# Case 1: Cancel the EMF and create a net zero magnetic field vector
+print("\n============ CASE 1: Cancel vEMF =============")
 print(" -> generate a field of vB =", -1*cage.vEMF.round(3), "[uT]")
 Ireq_EMF = cage.Ireq_breakdown(np.array([0,0,0]))
-cage.properties_vB_req(np.array([0,0,0]), cancelEMF=True)
+cage.properties_vB_req(np.array([0,0,0]), cancelEMF=True,)
 
 
-# Case: Cancel the EMF and generate 250 uT in +Z direction (Z-coil has highest 
+# Case 2: Cancel the EMF and generate 250 uT in +Z direction (Z-coil has highest 
 #   impedance)
-print("\n============ CASE: 250 uT in +Z ============")
+print("\n============ CASE 2: 250 uT in +Z ============")
 vB_desired = scale_vector(np.array([0,0,1]),250)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
-# Case: Cancel the EMF and generate 250 uT diagonally (X, Y, Z coils all 
+# Case 3: Cancel the EMF and generate 250 uT diagonally (X, Y, Z coils all 
 #   generate the same magnetic field strength)
-print("\n======= CASE: 250 uT in XYZ diagonal =======")
+print("\n======= CASE 3: 250 uT in XYZ diagonal =======")
 vB_desired = scale_vector(np.array([1,1,1]),250)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
-# Case: Cancel the EMF and generate 250 uT exactly opposite to the EMF vector
-print("\n======= CASE: 250 uT opposite to EMF =======")
+# Case 4: Cancel the EMF and generate 250 uT exactly opposite to the EMF vector
+print("\n======= CASE 4: 250 uT opposite to EMF =======")
 vB_desired = scale_vector(-1*vEMF,250)
 print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
 cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
+# Case 5: Same as case 4, but assume a Teq of 100 degrees C
+print("\n=== CASE 5: 250 uT opposite to EMF, Teq=100 ==")
+vB_desired = scale_vector(-1*vEMF,250)
+print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
+
+
+# Case 6: Same as case 2, but for a field strength of 500 uT
+print("\n============ CASE 6: 500 uT in +Z ============")
+vB_desired = scale_vector(np.array([0,0,1]),500)
+print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+cage.properties_vB_req(vB_desired, cancelEMF=True)
+
+
+# Case 7: Same as case 2, but for a field strength of 750 uT
+print("\n============ CASE 7: 750 uT in +Z ============")
+vB_desired = scale_vector(np.array([0,0,1]),750)
+print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+cage.properties_vB_req(vB_desired, cancelEMF=True)
+
+# Case 8: Best performance on a 10A, 60V supply
+# Assume cage reaches max Teq of 100 C, to ensure a safety margin
+print("\n=== CASE 8: Best performance below 60V, 10A ===")
+vB_desired = scale_vector(np.array([0,0,1]),260.5)
+print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
+
+
 # Plot the characteristics of the cage
-cage.plot_current_performance()
+cage.plot_current_performance(Teq=100)
+
+# Plot the power requirements
+cage.plot_dRdT()
 
 #%% Timing stuff
 time2 = time.perf_counter()
