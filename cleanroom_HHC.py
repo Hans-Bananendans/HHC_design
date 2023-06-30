@@ -55,9 +55,9 @@ a_check = 180/np.pi*np.arccos(np.dot(v1,v2)) # if a_check == a_LR -> CHECK!
 
 #%% ====== Define components ========
 
-Vmax_supply = 60           # [V] Maximum supply voltage of maximum current
-Imax_supply = 5            # [A] Maximum supply current
-eff_supply = 0.99           # [-] Supply efficiency
+Vmax_supply = 60            # [V] Maximum supply voltage of maximum current
+Imax_supply = 5             # [A] Maximum supply current
+eff_supply = 0.865          # [-] Supply efficiency
 tt_supply = 0.050           # [s] Transient time for 10%-90% power (=slew rate)
                             #       typical figure for lab supplies O(-2) s
 
@@ -97,56 +97,69 @@ print(" -> generate a field of vB =", -1*cage.vEMF.round(3), "[uT]")
 Ireq_EMF = cage.Ireq_breakdown(np.array([0,0,0]))
 cage.properties_vB_req(np.array([0,0,0]), cancelEMF=True,)
 
+EMF_measured_raw = [-79, -88, 461.5]
 
-# Case 2: Cancel the EMF and generate 250 uT in +Z direction (Z-coil has highest 
-#   impedance)
-print("\n============ CASE 2: 250 uT in +Z ============")
-vB_desired = scale_vector(np.array([0,0,1]),250)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True)
+# Rotation sequence to go from sensor frame to HHC frame
+a1 = -180*np.pi/180 # +180 around X
+a2 = -90*np.pi/180  # +90 around Z
 
+R_sensor2HHC_1 = np.array([[1,          0,           0],
+                           [0, np.cos(a1), -np.sin(a1)],
+                           [0, np.sin(a1),  np.cos(a1)]])
 
-# Case 3: Cancel the EMF and generate 250 uT diagonally (X, Y, Z coils all 
-#   generate the same magnetic field strength)
-print("\n======= CASE 3: 250 uT in XYZ diagonal =======")
-vB_desired = scale_vector(np.array([1,1,1]),250)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True)
+R_sensor2HHC_2 = np.array([[np.cos(a2), -np.sin(a2), 0],
+                           [np.sin(a2),  np.cos(a2), 0],
+                           [         0,           0, 1]])
+EMF_measured = np.dot(R_sensor2HHC_2, np.dot(R_sensor2HHC_1, EMF_measured_raw))
 
-
-# Case 4: Cancel the EMF and generate 250 uT exactly opposite to the EMF vector
-print("\n======= CASE 4: 250 uT opposite to EMF =======")
-vB_desired = scale_vector(-1*vEMF,250)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True)
+# Case 2: Cancel the measured ambient EMF in the room, and create a net zero 
+#   magnetic field vector
+print("\n==== CASE 2: Cancel measured ambient EMF =====")
+print(" -> generate a field of vB =", -1*EMF_measured, "[uT]")
+cage.properties_vB_req(-1*EMF_measured, cancelEMF=False,) # Cancel EMF is false because it's part of the measured noise
 
 
-# Case 5: Same as case 4, but assume a Teq of 100 degrees C
-print("\n=== CASE 5: 250 uT opposite to EMF, Teq=100 ==")
-vB_desired = scale_vector(-1*vEMF,250)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
+# # Case 3: Cancel the EMF and generate 250 uT diagonally (X, Y, Z coils all 
+# #   generate the same magnetic field strength)
+# print("\n======= CASE 3: 250 uT in XYZ diagonal =======")
+# vB_desired = scale_vector(np.array([1,1,1]),250)
+# print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+# cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
-# Case 6: Same as case 2, but for a field strength of 500 uT
-print("\n============ CASE 6: 500 uT in +Z ============")
-vB_desired = scale_vector(np.array([0,0,1]),500)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True)
+# # Case 4: Cancel the EMF and generate 250 uT exactly opposite to the EMF vector
+# print("\n======= CASE 4: 250 uT opposite to EMF =======")
+# vB_desired = scale_vector(-1*vEMF,250)
+# print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+# cage.properties_vB_req(vB_desired, cancelEMF=True)
 
 
-# Case 7: Same as case 2, but for a field strength of 750 uT
-print("\n============ CASE 7: 750 uT in +Z ============")
-vB_desired = scale_vector(np.array([0,0,1]),750)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True)
+# # Case 5: Same as case 4, but assume a Teq of 100 degrees C
+# print("\n=== CASE 5: 250 uT opposite to EMF, Teq=100 ==")
+# vB_desired = scale_vector(-1*vEMF,250)
+# print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+# cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
 
-# Case 8: Best performance on a 10A, 60V supply
-# Assume cage reaches max Teq of 100 C, to ensure a safety margin
-print("\n=== CASE 8: Best performance below 60V, 10A ===")
-vB_desired = scale_vector(np.array([0,0,1]),260.5)
-print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
-cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
+
+# # Case 6: Same as case 2, but for a field strength of 500 uT
+# print("\n============ CASE 6: 500 uT in +Z ============")
+# vB_desired = scale_vector(np.array([0,0,1]),500)
+# print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+# cage.properties_vB_req(vB_desired, cancelEMF=True)
+
+
+# # Case 7: Same as case 2, but for a field strength of 750 uT
+# print("\n============ CASE 7: 750 uT in +Z ============")
+# vB_desired = scale_vector(np.array([0,0,1]),750)
+# print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+# cage.properties_vB_req(vB_desired, cancelEMF=True)
+
+# # Case 8: Best performance on a 10A, 60V supply
+# # Assume cage reaches max Teq of 100 C, to ensure a safety margin
+# print("\n=== CASE 8: Best performance below 60V, 10A ===")
+# vB_desired = scale_vector(np.array([0,0,1]),260.5)
+# print(" -> generate a field of vB =", vB_desired.round(3), "[uT]")
+# cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
 
 
 # Plot the characteristics of the cage
