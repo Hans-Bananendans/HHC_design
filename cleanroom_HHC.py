@@ -9,6 +9,7 @@ Created on Thu Nov 25 15:26:12 2021
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 from hhc_classes import PowerSupply, HHCoil, HHCage
 
@@ -97,6 +98,9 @@ print(" -> generate a field of vB =", -1*cage.vEMF.round(3), "[uT]")
 Ireq_EMF = cage.Ireq_breakdown(np.array([0,0,0]))
 cage.properties_vB_req(np.array([0,0,0]), cancelEMF=True,)
 
+
+# Case 2: Cancel the measured ambient EMF in the room, and create a net zero 
+#   magnetic field vector
 EMF_measured_raw = [-79, -88, 461.5]
 
 # Rotation sequence to go from sensor frame to HHC frame
@@ -112,8 +116,6 @@ R_sensor2HHC_2 = np.array([[np.cos(a2), -np.sin(a2), 0],
                            [         0,           0, 1]])
 EMF_measured = np.dot(R_sensor2HHC_2, np.dot(R_sensor2HHC_1, EMF_measured_raw))
 
-# Case 2: Cancel the measured ambient EMF in the room, and create a net zero 
-#   magnetic field vector
 print("\n==== CASE 2: Cancel measured ambient EMF =====")
 print(" -> generate a field of vB =", -1*EMF_measured, "[uT]")
 cage.properties_vB_req(-1*EMF_measured, cancelEMF=False,) # Cancel EMF is false because it's part of the measured noise
@@ -163,10 +165,41 @@ cage.properties_vB_req(-1*EMF_measured, cancelEMF=False,) # Cancel EMF is false 
 
 
 # Plot the characteristics of the cage
-cage.plot_current_performance(Teq=100)
+data, Amap = cage.plot_current_performance(Teq=100)
+Bmap = data[2]
+Bmap_reversed = deepcopy(Bmap)
+Amap_reversed = deepcopy(Amap)
+for i in range(len(Amap_reversed) // 2):
+    Amap_reversed[i], Amap_reversed[-1 - i] = Amap_reversed[-1 - i], Amap_reversed[i]
+    for j in range(len(Bmap_reversed)):
+        Bmap_reversed[j][i], Bmap_reversed[j][-1 - i] = Bmap_reversed[j][-1 - i], Bmap_reversed[j][i]
+Arange = np.concatenate((-Amap_reversed[:][:-1], Amap))
+# Brange = []
+# for i in range(len(Bmap)):
+#     Brange.append(np.concatenate((Bmap_reversed[i][:-1], Bmap[i])))
+Bmap = np.array(Bmap)
+Bmap_reversed = np.array(Bmap_reversed)
+Brange = np.concatenate((-Bmap_reversed[0][:-1], Bmap[0]))
+
+Acrit = []
+for i in Rwiring:
+    Acrit.append(0.8/i)
+    
+Bcrit = [cage.Xcoil.calc_Bmid(Acrit[0]),
+         cage.Ycoil.calc_Bmid(Acrit[1]),
+         cage.Zcoil.calc_Bmid(Acrit[2])]
+
+# Inject this data into Arange, Brange:
+Arange = np.insert(Arange, 98, -Acrit[0])
+Arange = np.insert(Arange, 103+1, Acrit[0])
+Brange = np.insert(Brange, 98, -Bcrit[0])
+Brange = np.insert(Brange, 103+1, Bcrit[0])
+
+Brange[99:104] = [0]*5
+plt.plot(Arange,Brange)
 
 # Plot the power requirements
-cage.plot_dRdT()
+# cage.plot_dRdT()
 
 #%% Timing stuff
 time2 = time.perf_counter()

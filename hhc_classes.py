@@ -497,6 +497,8 @@ class HHCage:
         fig.tight_layout()
         plt.show
         
+        return varinst, Amap[0]
+        
     def plot_dRdT(self, Arange='nothing'):
         """
         Plot the R-T relationship as function of the equilibrium temperature
