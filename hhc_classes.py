@@ -175,8 +175,8 @@ class HHCoil:
         
     def calc_B_HHC(self, coor, I): 
         """
-         Function from [frix1994] for computing the field strength at a point 
-           [x,y,z] located in between a SQUARE Helmholtz coil pair.
+         Function (7) from [frix1994] for computing the field strength at a
+           point [x,y,z] located in between a SQUARE Helmholtz coil pair.
            - coor is a 3D Cartesian coordinate in [m]
            - coil_side is the side-length of the square coil in [m]
            - coil_spacing is the distance between the coils
@@ -184,6 +184,10 @@ class HHCoil:
            - n is the number of windings in the coil [-]
            - I is the coil current in [A]
            - B is the field strength at the coordinate in [uT] (default) or [T]
+        
+        Note: the Cartesian coordinate system is centered on the AXIS LINE of
+            the Helmholtz coil pairs at the exact MIDDLE OF THE COILS. In other
+            words, the coordinate system is located exactly in the middle.
         """
         # Calculate the field strength at point (Biot-Savart)
         Bz = self.mu0 * self.N * I/(4*np.pi) * self.compute_Q(coor)
@@ -199,7 +203,8 @@ class HHCoil:
          exact geometric middle of the Helmholtz coil pair. This point lies
          on the commom axis of the two coils, and at 1/2 the coil spacing.
         """
-        return self.calc_B_HHC([0,0,0.5*self.spacing], I)
+        # return self.calc_B_HHC([0,0,0.5*self.spacing], I)
+        return self.calc_B_HHC([0,0,0], I)
         
     def calc_Bmid_max(self):
         """
@@ -207,7 +212,8 @@ class HHCoil:
          exact geometric middle of the Helmholtz coil pair. This point lies
          on the commom axis of the two coils, and at 1/2 the coil spacing.
         """
-        return self.calc_B_HHC([0,0,0.5*self.spacing], self.supply.Amax)
+        # return self.calc_B_HHC([0,0,0.5*self.spacing], self.supply.Amax)
+        return self.calc_B_HHC([0,0,0], self.supply.Amax)
     
     def calc_Ireq_coor(self, coor, Breq): 
         """
@@ -245,7 +251,8 @@ class HHCoil:
         Breq *= 1E-6
     
         # Define coordinate of middle point on the coil axis
-        coor = [0,0,0.5*self.spacing]
+        # coor = [0,0,0.5*self.spacing]
+        coor = [0,0,0]
         
         # Calculate the field strength at point (Biot-Savart)
         Ireq = 1/self.N * (4*np.pi)/self.mu0 * Breq/self.compute_Q(coor)
