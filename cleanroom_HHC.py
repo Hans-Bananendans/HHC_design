@@ -101,7 +101,7 @@ cage.properties_vB_req(np.array([0,0,0]), cancelEMF=True,)
 
 # Case 2: Cancel the measured ambient EMF in the room, and create a net zero 
 #   magnetic field vector
-EMF_measured_raw = [-79, -88, 461.5]
+EMF_measured_raw = [-7.73, -8.643, 46.037]
 
 # Rotation sequence to go from sensor frame to HHC frame
 a1 = -180*np.pi/180 # +180 around X
