@@ -65,7 +65,8 @@ Rcoils = [6.27, 6.85, 6.92] # Ohm
 
 N_windings = 83
 sidelength_coil = [1.85, 1.95, 2.05] # [m] X,Y,Z
-width_coil = 0.05 # [m] Coil thickness estimated 
+# width_coil = 0.05 # [m] Coil thickness estimated
+width_coil = 0.019 # [m] Coil thickness (from Poppenk2009)
 Rdl = 0.00657 # [Ohm/m] Impedance of coil wire (per meter)
 
 coilX = HHCoil(sidelength_coil[0],width_coil,N_windings,0,Rdl,supplyX)
@@ -150,6 +151,10 @@ ax2.plot(t, vz_total, "k", label="Total")
 # Dotted lines
 vzmf = max(vz_field)
 vzmt = max(vz_total)
+
+print("Max baseline:",vzmf,"V")
+print("Max total:",vzmt,"V")
+
 ax2.plot([t[0], (t[-1]-t[0])/2, t[-1]], [vzmf, vzmf, vzmf], 
           "b", linestyle="dotted")
 ax2.plot([t[0], (t[-1]-t[0])/2, t[-1]], [vzmt, vzmt, vzmt], 
@@ -160,9 +165,9 @@ ax1.set_xlabel("Time [s]")
 ax2.set_xlabel("Time [s]")
 ax1.set_ylabel("Supplied voltage [V]")
 
-ax1.text((t[-1]-t[0])/2, 1.03*vxmt, "peak +{}%".format(round(100*(vxmt/vxmf-1), 2)-1),
+ax1.text((t[-1]-t[0])/2, 1.03*vxmt, "peak +{}%".format(round(100*(vxmt/vxmf-1)-1, 2)),
          fontsize=13, c="k")
-ax2.text((t[-1]-t[0])/2, 1.03*vzmt, "peak +{}%".format(round(100*(vzmt/vzmf-1), 2)-1),
+ax2.text((t[-1]-t[0])/2, 1.03*vzmt, "peak +{}%".format(round(100*(vzmt/vzmf-1)-1, 2)),
          fontsize=13, c="k")
 
 ax1.legend(loc="lower right")
