@@ -35,7 +35,7 @@ def scale_vector(vB: np.ndarray, B: float):
 
 # Magnetic field strength at Delft (from [poppenk2007])
 # X = +East, Y= +North, Z = +Azimuth
-vEMF_compass = np.array([-0.1769, 19.0764, -44.8871])
+vEMF_compass = np.array([8.161, 17.367, -45.457])
 
 # Orientation of TU Delft Helmholtz cage with respect to compass directions.
 # Angle between North heading and axis of X coil pair (see Google maps)
@@ -76,12 +76,13 @@ Rwiring = [6.27, 6.85, 6.92] # Ohm
 
 N_windings = 83
 sidelength_coil = [1.85, 1.95, 2.05] # [m] X,Y,Z
-width_coil = 0.05 # [m] Coil thickness estimated 
+# width_coil = 0.05 # [m] Coil thickness estimated
+width_coil = 0.019 # [m] Coil thickness (from Poppenk2009)
 Rdl = 0.00657 # [Ohm/m] Impedance of coil wire (per meter)
 
-coilX = HHCoil(sidelength_coil[0],width_coil,N_windings,Rdl,Rwiring[0],supplyX)
-coilY = HHCoil(sidelength_coil[1],width_coil,N_windings,Rdl,Rwiring[1],supplyY)
-coilZ = HHCoil(sidelength_coil[2],width_coil,N_windings,Rdl,Rwiring[2],supplyZ)
+coilX = HHCoil(sidelength_coil[0],width_coil,N_windings,0,Rwiring[0],supplyX)
+coilY = HHCoil(sidelength_coil[1],width_coil,N_windings,0,Rwiring[1],supplyY)
+coilZ = HHCoil(sidelength_coil[2],width_coil,N_windings,0,Rwiring[2],supplyZ)
 
 # Define cage object
 cage = HHCage(coilX, coilY, coilZ, vEMF=vEMF)
@@ -91,6 +92,10 @@ cage = HHCage(coilX, coilY, coilZ, vEMF=vEMF)
 print("For a supply slew rate of", supplyX.t_transient*1000, "ms:")
 print("VLt =", [round(coil.VLt_max(),3) for coil in cage.coils()], " [V]")
 
+print(" ")
+
+B_5A = [round(cage.coils()[i].calc_Bmid(5),3) for i in (0, 1, 2)]
+print("At 5A, the field strength is", B_5A)
 
 # Case 1: Cancel the EMF and create a net zero magnetic field vector
 print("\n============ CASE 1: Cancel vEMF =============")
@@ -120,6 +125,27 @@ print("\n==== CASE 2: Cancel measured ambient EMF =====")
 print(" -> generate a field of vB =", -1*EMF_measured, "[uT]")
 cage.properties_vB_req(-1*EMF_measured, cancelEMF=False,) # Cancel EMF is false because it's part of the measured noise
 
+
+vs = 285
+option1 = np.array([vs, vs, vs])
+print("\n==== CASE 3: Cancel measured ambient EMF =====")
+print(" -> generate a field of vB =", option1, "[uT]")
+cage.properties_vB_req(option1, cancelEMF=False,)
+
+vs = 241
+vs = 214
+option1 = np.array([vs, vs, vs])
+print("\n==== CASE 4: Cancel measured ambient EMF =====")
+print(" -> generate a field of vB =", option1, "[uT]")
+cage.properties_vB_req(option1, cancelEMF=True,) # Cancel EMF is false because it's part of the measured noise
+
+
+# vEMF_norm = vEMF / np.linalg.norm(vEMF)
+
+# vs = 241
+# print("\n==== CASE 5: Cancel measured ambient EMF =====")
+# print(" -> generate a field of vB =", option1, "[uT]")
+# cage.properties_vB_req(-vEMF_norm*vs, cancelEMF=True,) # Cancel EMF is false because it's part of the measured noise
 
 # # Case 3: Cancel the EMF and generate 250 uT diagonally (X, Y, Z coils all 
 # #   generate the same magnetic field strength)
@@ -164,41 +190,43 @@ cage.properties_vB_req(-1*EMF_measured, cancelEMF=False,) # Cancel EMF is false 
 # cage.properties_vB_req(vB_desired, cancelEMF=True, Teq=100)
 
 
-# Plot the characteristics of the cage
-data, Amap = cage.plot_current_performance(Teq=100)
-Bmap = data[2]
-Bmap_reversed = deepcopy(Bmap)
-Amap_reversed = deepcopy(Amap)
-for i in range(len(Amap_reversed) // 2):
-    Amap_reversed[i], Amap_reversed[-1 - i] = Amap_reversed[-1 - i], Amap_reversed[i]
-    for j in range(len(Bmap_reversed)):
-        Bmap_reversed[j][i], Bmap_reversed[j][-1 - i] = Bmap_reversed[j][-1 - i], Bmap_reversed[j][i]
-Arange = np.concatenate((-Amap_reversed[:][:-1], Amap))
-# Brange = []
-# for i in range(len(Bmap)):
-#     Brange.append(np.concatenate((Bmap_reversed[i][:-1], Bmap[i])))
-Bmap = np.array(Bmap)
-Bmap_reversed = np.array(Bmap_reversed)
-Brange = np.concatenate((-Bmap_reversed[0][:-1], Bmap[0]))
 
-Acrit = []
-for i in Rwiring:
-    Acrit.append(0.8/i)
+
+# # Plot the characteristics of the cage
+# data, Amap = cage.plot_current_performance(Teq=100)
+# Bmap = data[2]
+# Bmap_reversed = deepcopy(Bmap)
+# Amap_reversed = deepcopy(Amap)
+# for i in range(len(Amap_reversed) // 2):
+#     Amap_reversed[i], Amap_reversed[-1 - i] = Amap_reversed[-1 - i], Amap_reversed[i]
+#     for j in range(len(Bmap_reversed)):
+#         Bmap_reversed[j][i], Bmap_reversed[j][-1 - i] = Bmap_reversed[j][-1 - i], Bmap_reversed[j][i]
+# Arange = np.concatenate((-Amap_reversed[:][:-1], Amap))
+# # Brange = []
+# # for i in range(len(Bmap)):
+# #     Brange.append(np.concatenate((Bmap_reversed[i][:-1], Bmap[i])))
+# Bmap = np.array(Bmap)
+# Bmap_reversed = np.array(Bmap_reversed)
+# Brange = np.concatenate((-Bmap_reversed[0][:-1], Bmap[0]))
+
+# Acrit = []
+# for i in Rwiring:
+#     Acrit.append(0.8/i)
     
-Bcrit = [cage.Xcoil.calc_Bmid(Acrit[0]),
-         cage.Ycoil.calc_Bmid(Acrit[1]),
-         cage.Zcoil.calc_Bmid(Acrit[2])]
+# Bcrit = [cage.Xcoil.calc_Bmid(Acrit[0]),
+#          cage.Ycoil.calc_Bmid(Acrit[1]),
+#          cage.Zcoil.calc_Bmid(Acrit[2])]
 
-# Inject this data into Arange, Brange:
-Arange = np.insert(Arange, 98, -Acrit[0])
-Arange = np.insert(Arange, 103+1, Acrit[0])
-Brange = np.insert(Brange, 98, -Bcrit[0])
-Brange = np.insert(Brange, 103+1, Bcrit[0])
+# # Inject this data into Arange, Brange:
+# Arange = np.insert(Arange, 98, -Acrit[0])
+# Arange = np.insert(Arange, 103+1, Acrit[0])
+# Brange = np.insert(Brange, 98, -Bcrit[0])
+# Brange = np.insert(Brange, 103+1, Bcrit[0])
 
-Brange[99:104] = [0]*5
-plt.plot(Arange,Brange)
+# Brange[99:104] = [0]*5
+# plt.plot(Arange,Brange)
 
-# Plot the power requirements
+# # Plot the power requirements
 # cage.plot_dRdT()
 
 #%% Timing stuff

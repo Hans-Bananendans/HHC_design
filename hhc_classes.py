@@ -435,14 +435,14 @@ class HHCage:
             if method[0:2] != "__":
                 print(str(method+"()"))
                 
-    def plot_current_performance(self, Arange='nothing', Teq=20):
+    def plot_current_performance(self, Arange=None, Teq=20):
         """
         Plot the Vneeded, Pneeded, and Bmid as function of a range of values
           for the current (Arange), and plot these.
         Use Teq to set the expected equilibrium temperature of the coils (default: 20 C)
         """
         # If no current range is given, use a default instead
-        if isinstance(Arange, str):
+        if Arange is None:
             defaultlen = 101
             Amap = [np.linspace(0,self.coils()[0].supply.Amax,defaultlen),
                     np.linspace(0,self.coils()[1].supply.Amax,defaultlen),
