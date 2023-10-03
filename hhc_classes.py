@@ -72,10 +72,14 @@ class HHCoil:
         self.spacing = spacing_ratio*lx # [m] Distance between coil pair
         
         self.l_wire = self.l_wire()     # [m] Total length of BOTH coil wire
+        
         self.R = self.l_wire*self.Rdl   # [Ohm] Total resistance of coil wire
         
         self.L = 2*self.L_1coil()       # [H] Inductance of BOTH coils
 
+    def set_R(self, R):
+        self.R = R
+    
     def l_wire(self):
         """
         Calculates minimum wire length needed to make BOTH coils, assuming the 
@@ -114,7 +118,8 @@ class HHCoil:
         
         alpha_copper = 0.00427 # [Ohm/K] see [ladino2015]
         
-        return (self.R + self.Rconnectors)*(1+alpha_copper*(Teq-20))
+#        return (self.R + self.Rconnectors)*(1+alpha_copper*(Teq-20))
+        return (self.R)*(1+alpha_copper*(Teq-20))
     
     def VLt_max(self):
         """
