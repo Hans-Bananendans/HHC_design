@@ -76,6 +76,8 @@ class HHCoil:
         self.R = self.l_wire*self.Rdl   # [Ohm] Total resistance of coil wire
         
         self.L = 2*self.L_1coil()       # [H] Inductance of BOTH coils
+        
+        self.Q = self.compute_Q([0, 0, 0])
 
     def set_R(self, R):
         self.R = R
